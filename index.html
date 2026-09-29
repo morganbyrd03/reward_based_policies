@@ -1,0 +1,712 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Reward as Observation: Learning Reward-Based Policies for Rapid Adaptation. A policy conditioned only on reward and action history transfers zero-shot across observation spaces.">
+<meta property="og:title" content="Reward as Observation">
+<meta property="og:description" content="Learning Reward-Based Policies for Rapid Adaptation (ICRA 2027 submission).">
+<meta property="og:image" content="img/fig1.png">
+<title>Reward as Observation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+/* Layout: single 1080px column; hero splits title | Fig. 1; results alternate text and figure plates. Orange = reward-based, green = observation-based, as in the paper's plots. */
+:root {
+  --bg: #F2F4F6;
+  --surface: #FFFFFF;
+  --fg: #15202A;
+  --muted: #56636F;
+  --line: #D6DCE2;
+  --reward: #C8561A;
+  --reward-soft: #F6E3D6;
+  --obs: #2A8650;
+  --obs-soft: #DCEFE3;
+  --plate: #FFFFFF;
+  --plate-line: #DDE2E7;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  --measure: 66ch;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0D1318; --surface: #151D25; --fg: #E3E8ED; --muted: #94A2AF; --line: #27323D;
+    --reward: #F08A4B; --reward-soft: #3A2518; --obs: #5CC388; --obs-soft: #173325;
+    --plate: #F5F7F9; --plate-line: #2C3844; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0D1318; --surface: #151D25; --fg: #E3E8ED; --muted: #94A2AF; --line: #27323D;
+  --reward: #F08A4B; --reward-soft: #3A2518; --obs: #5CC388; --obs-soft: #173325;
+  --plate: #F5F7F9; --plate-line: #2C3844; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: var(--body); font-size: 1.075rem; line-height: 1.62;
+  padding-inline: 20px; padding-block: 0 64px;
+}
+.wrap { max-width: 1080px; margin-inline: auto; }
+a { color: var(--reward); text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--reward); outline-offset: 3px; border-radius: 4px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; line-height: 1.1; margin: 0; }
+h2 { font-size: clamp(1.7rem, 3.4vw, 2.3rem); font-weight: 700; letter-spacing: -0.015em; }
+h3 { font-size: 1.28rem; font-weight: 700; letter-spacing: -0.005em; }
+p { margin: 0; max-width: var(--measure); }
+.eyebrow { font-family: var(--mono); font-size: 0.76rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.mono { font-family: var(--mono); }
+.r { color: var(--reward); } .o { color: var(--obs); }
+
+/* top bar */
+.bar { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; padding-block: 18px; border-bottom: 1px solid var(--line); }
+.bar nav { display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.bar a { color: var(--muted); text-decoration: none; font-family: var(--mono); font-size: 0.8rem; }
+.bar a:hover { color: var(--fg); }
+
+/* hero */
+.hero { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 40px; align-items: center; padding-block: 56px 40px; }
+.hero h1 { font-size: clamp(2.6rem, 6.6vw, 4.6rem); font-weight: 800; letter-spacing: -0.035em; line-height: 0.98; }
+.hero h1 .r { display: block; }
+.hero .sub { font-family: var(--display); font-weight: 500; font-size: clamp(1.15rem, 2.2vw, 1.4rem); color: var(--muted); margin-top: 14px; }
+.hero .lede { margin-top: 22px; font-size: 1.15rem; }
+.venue { display: inline-flex; gap: 10px; align-items: center; margin-bottom: 18px; }
+.venue .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--reward); }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 999px; font-family: var(--mono); font-size: 0.86rem; text-decoration: none; border: 1px solid var(--line); color: var(--fg); background: var(--surface); cursor: pointer; }
+.btn:hover { border-color: var(--fg); }
+.btn.primary { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.btn svg { width: 16px; height: 16px; flex: none; }
+
+.plate { background: var(--plate); border: 1px solid var(--plate-line); border-radius: 10px; padding: 14px; margin: 0; }
+.plate img { display: block; width: 100%; height: auto; }
+figure { margin: 0; }
+figcaption { font-size: 0.92rem; color: var(--muted); margin-top: 10px; max-width: var(--measure); line-height: 1.5; }
+figcaption b { font-family: var(--mono); font-weight: 500; color: var(--fg); font-size: 0.8rem; margin-right: 6px; }
+
+/* signature strip: what the policy sees */
+.sees { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 16px; align-items: center; border-block: 1px solid var(--line); padding-block: 14px; }
+.sees canvas { width: 100%; height: 44px; display: block; }
+
+/* glance */
+.glance { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; border-bottom: 1px solid var(--line); }
+.glance div { padding: 22px 18px 22px 0; display: grid; gap: 6px; align-content: start; }
+.glance div + div { padding-left: 18px; border-left: 1px solid var(--line); }
+.glance .num { font-family: var(--display); font-weight: 700; font-size: 1.9rem; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1; }
+.glance p { font-size: 0.93rem; color: var(--muted); line-height: 1.45; }
+
+section { padding-block: 64px 0; }
+.sec-head { display: grid; gap: 10px; margin-bottom: 26px; }
+.stack { display: grid; gap: 18px; }
+.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 36px; align-items: start; }
+.split.wide-fig { grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); }
+.sub-block { padding-top: 44px; margin-top: 44px; border-top: 1px solid var(--line); }
+.sub-block:first-of-type { margin-top: 0; }
+
+.video-frame { background: #000; border-radius: 10px; overflow: hidden; aspect-ratio: 16 / 9; max-width: 100%; }
+.video-frame video { width: 100%; height: 100%; display: block; }
+
+.abstract { font-size: 1.12rem; }
+.abstract p + p { margin-top: 14px; }
+
+/* math */
+.eq { font-family: var(--mono); font-size: 0.95rem; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; overflow-x: auto; white-space: nowrap; max-width: 100%; }
+.eq sub, .eq sup { font-size: 0.72em; }
+
+/* pipeline */
+.steps { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; counter-reset: s; }
+.steps li { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: grid; gap: 8px; align-content: start; counter-increment: s; }
+.steps li::before { content: "Step " counter(s); font-family: var(--mono); font-size: 0.74rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--reward); }
+.steps p { font-size: 0.97rem; }
+.steps .where { font-family: var(--mono); font-size: 0.78rem; color: var(--muted); }
+
+.props { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 36px; }
+.props div { display: grid; gap: 6px; }
+.props .tag { font-family: var(--mono); font-size: 0.74rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.props p { font-size: 0.99rem; }
+
+/* tables */
+.tbl { overflow-x: auto; max-width: 100%; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: 0.95rem; }
+caption { text-align: left; font-size: 0.9rem; color: var(--muted); padding-bottom: 10px; caption-side: top; }
+th, td { padding: 9px 12px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-family: var(--mono); font-weight: 500; font-size: 0.78rem; color: var(--muted); letter-spacing: 0.03em; }
+td { font-family: var(--mono); font-size: 0.88rem; }
+td:first-child { font-family: var(--body); font-size: 0.95rem; }
+tr.hl td { color: var(--reward); }
+tr.hl td:first-child { font-weight: 600; }
+td.weak { color: var(--muted); }
+
+/* demo */
+.demo { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 22px; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 24px; }
+.demo:focus-within { border-color: var(--reward); }
+.readout { display: grid; gap: 14px; align-content: start; }
+.rnow { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.rnow .val { font-family: var(--mono); font-size: 2.6rem; font-weight: 500; color: var(--reward); font-variant-numeric: tabular-nums; line-height: 1; }
+.rnow .lab { font-family: var(--mono); font-size: 0.8rem; color: var(--muted); }
+#trace { width: 100%; height: 150px; display: block; background: var(--bg); border-radius: 8px; }
+.hist { font-family: var(--mono); font-size: 0.8rem; color: var(--muted); min-height: 1.5em; overflow-wrap: anywhere; }
+.status { font-size: 0.95rem; min-height: 1.6em; }
+.status.win { color: var(--obs); font-weight: 600; }
+.map-col { display: grid; gap: 12px; align-content: start; justify-items: center; }
+#map { width: 100%; max-width: 300px; aspect-ratio: 1; display: block; border-radius: 8px; background: var(--bg); }
+.pad { display: grid; grid-template-columns: repeat(3, 46px); grid-template-rows: repeat(2, 46px); gap: 6px; justify-content: center; }
+.pad button { border: 1px solid var(--line); background: var(--bg); color: var(--fg); border-radius: 8px; font-size: 1.1rem; cursor: pointer; }
+.pad button:hover { border-color: var(--fg); }
+.pad .u { grid-column: 2; grid-row: 1; } .pad .l { grid-column: 1; grid-row: 2; } .pad .d { grid-column: 2; grid-row: 2; } .pad .rt { grid-column: 3; grid-row: 2; }
+.demo-ctrl { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.demo-ctrl .btn { padding: 8px 13px; font-size: 0.8rem; }
+.hint { font-size: 0.86rem; color: var(--muted); text-align: center; max-width: 34ch; }
+
+.videos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.videos video { width: 100%; display: block; border-radius: 8px; aspect-ratio: 4 / 3; background: #000; }
+/* both Car Racing clips are encoded at 720x504, so equal columns give equal boxes */
+.videos.car video { aspect-ratio: 720 / 504; height: auto; }
+
+.limits { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px 32px; }
+.limits div { display: grid; gap: 6px; align-content: start; }
+.limits p { font-size: 0.99rem; }
+
+footer { margin-top: 72px; padding-top: 22px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; font-family: var(--mono); font-size: 0.78rem; color: var(--muted); }
+
+@media (max-width: 880px) {
+  .hero, .split, .split.wide-fig, .demo { grid-template-columns: minmax(0, 1fr); }
+  .hero { padding-block: 36px 28px; gap: 28px; }
+  .glance { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .glance div:nth-child(3) { border-left: 0; padding-left: 0; }
+  .glance div:nth-child(n+3) { border-top: 1px solid var(--line); }
+  .steps, .limits { grid-template-columns: minmax(0, 1fr); }
+  .props { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 520px) {
+  body { padding-inline: 16px; }
+  .videos { grid-template-columns: minmax(0, 1fr); }
+  .sees { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .glance .num { font-size: 1.6rem; }
+  .demo { padding: 16px; }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <!-- <header class="bar">
+    <span class="eyebrow">ICRA 2027 · Manuscript 1852</span>
+    <nav aria-label="Sections">
+      <a href="#video">Video</a>
+      <a href="#abstract">Abstract</a>
+      <a href="#method">Method</a>
+      <a href="#try">Try it</a>
+      <a href="#results">Results</a>
+      <a href="#limits">Limitations</a>
+    </nav>
+  </header> -->
+
+  <div class="hero">
+    <div>
+      <!-- <div class="venue"><span class="dot" aria-hidden="true"></span><span class="eyebrow">Under review · IEEE ICRA 2027</span></div> -->
+      <h1>Reward as <span class="r">Observation</span></h1>
+      <p class="sub">Learning Reward-Based Policies for Rapid Adaptation</p>
+      <p class="lede">A policy that sees only its recent rewards and actions never looks at the screen, so it keeps working when the screen changes. We train one in a cheap 2D simulator and deploy it, unchanged, in a 3D renderer and on a Stretch robot in scanned real homes.</p>
+      <div class="actions">
+        <a class="btn primary" href="paper.pdf" target="_blank" rel="noopener">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 1.5h5.5L13 5v9.5H4z"/><path d="M9.5 1.5V5H13"/></svg>Paper (PDF)</a>
+        <a class="btn" href="#video">
+          <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M5 3.2v9.6L12.5 8z"/></svg>Video</a>
+        <a class="btn" href="#try">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="8" cy="8" r="5.5"/><circle cx="8" cy="8" r="1.6" fill="currentColor"/></svg>Play the demo</a>
+      </div>
+    </div>
+    <figure>
+      <div class="plate"><img src="img/fig1.png" alt="Diagram: a policy pi receives reward r_t and outputs action a_t in a 2D top-down car racing game, and the same policy is reused on a 3D rendering of the same track."></div>
+      <figcaption><b>Fig. 1</b>The same policy drives in 2D and 3D. Its only inputs are reward <i>r<sub>t</sub></i> and action <i>a<sub>t</sub></i> histories.</figcaption>
+    </figure>
+  </div>
+
+  <div class="sees" aria-label="Illustration of the reward signal the policy observes">
+    <span class="eyebrow">What the policy sees: <span class="r">r<sub>t</sub></span> and <span class="o">a<sub>t</sub></span>, nothing else</span>
+    <canvas id="ticker" aria-hidden="true"></canvas>
+  </div>
+
+  <div class="glance" aria-label="Results at a glance">
+    <div><span class="num r">66–95%</span><p>of state-based performance across Pointmass, Cartpole, and Car Racing, from reward and action alone.</p></div>
+    <div><span class="num">0</span><p>retraining steps to go from 2D Car Racing to 3D rendering and to Habitat-Sim home scans.</p></div>
+    <div><span class="num">70K</span><p>steps for a pixel-based student to reach near-optimal driving with the reward-based policy as DAgger teacher.</p></div>
+    <div><span class="num"><span class="r">736</span> <span style="color:var(--muted);font-weight:500">vs</span> 189</span><p>Cartpole reward from images: learned reward estimator vs. learned state estimator (random ≈ 193).</p></div>
+  </div>
+
+  <section id="video">
+    <div class="sec-head">
+      <!-- <span class="eyebrow">Supplementary video · 1:38</span> -->
+      <h2>Overview</h2>
+    </div>
+    <div class="video-frame">
+      <video id="mainvid" controls preload="metadata" playsinline poster="img/poster_supplementary.jpg">
+        <source src="video/supplementary.mp4" type="video/mp4">
+      </video>
+    </div>
+  </section>
+
+  <!-- <section id="abstract">
+    <div class="split">
+      <div class="sec-head">
+        <span class="eyebrow">Abstract</span>
+        <h2>Rewards are shared even when observations are not</h2>
+      </div>
+      <div class="abstract">
+        <p>This paper explores a reward-based policy to achieve zero-shot transfer between source and target environments with completely different observation spaces. While humans can demonstrate impressive adaptation capabilities, deep neural network policies often struggle to adapt to a new environment and require a considerable amount of samples for successful transfer.</p>
+        <p>Instead, we propose a novel reward-based policy only conditioned on rewards and actions, enabling zero-shot adaptation to new environments with completely different observations. We discuss the challenges and feasibility of a reward-based policy and then propose a practical algorithm for training. We demonstrate that a reward policy can be trained within three different environments, Pointmass, Cartpole, and 2D Car Racing, and transferred to completely different observations, such as different color palettes or 3D rendering, or Stretch robot navigation in Habitat-Sim, in a zero-shot manner. We also demonstrate that a reward-based policy can further guide the training of an observation-based policy in the target environment.</p>
+      </div>
+    </div>
+  </section> -->
+
+  <section id="method">
+    <div class="sec-head">
+      <span class="eyebrow">Method</span>
+      <h2>Replace the observation with the reward</h2>
+      <p>Source and target environments share state space, actions, dynamics, and reward. Only the observation differs, in any way at all: 2D to 3D, RGB to RGB-D, a new camera. We build a reward-based MDP by swapping the observation for a short history of reward and action pairs. That MDP is identical in source and target, so a policy trained in one runs in the other without modification.</p>
+    </div>
+
+    <div class="stack">
+      <div class="eq" role="math" aria-label="O reward equals the set of pairs r t minus k, a t minus k for k from 0 to K minus 1; pi reward maps O reward to A">
+        O<sup>rwd</sup> = { (r<sub>t−k</sub>, a<sub>t−k</sub>) }<sub>k=0…K−1</sub> &nbsp;&nbsp;&nbsp; π<sup>rwd</sup> : O<sup>rwd</sup> → A &nbsp;&nbsp;&nbsp; <span style="color:var(--muted)">L = L<sub>PPO</sub> + (a<sub>t</sub> − a<sub>t</sub><sup>*</sup>)<sup>2</sup></span>
+      </div>
+
+      <figure>
+        <div class="plate"><img src="img/fig3.png" alt="Architecture diagram. Training phase: a chain of LSTM networks reads reward and action pairs, outputs value and action, trained with PPO plus a regression loss toward an observation-based expert's action. Testing phase: the reward comes either from the environment or from a network estimating reward from observations."></div>
+        <figcaption><b>Fig. 3</b>An LSTM reads reward/action pairs and is trained with PPO plus a guidance loss toward a state-based expert π<sup>*</sup>. At test time the reward comes from the environment (option 1) or from a learned reward estimator on target observations (option 2).</figcaption>
+      </figure>
+
+      <ol class="steps">
+        <li><h3>Train in the source</h3><p>Train π<sup>rwd</sup> with PPO on reward/action history, regressing its actions toward an observation-based expert to keep exploration productive.</p><span class="where">cheap simulator · e.g. 2D Car Racing</span></li>
+        <li><h3>Deploy zero-shot</h3><p>Run the same checkpoint in the target. It never reads the target's observations, so nothing needs aligning.</p><span class="where">new observations · e.g. 3D render, Habitat-Sim</span></li>
+        <li><h3>Distill a student</h3><p>Use π<sup>rwd</sup> as a DAgger teacher to train an observation-based policy that needs no reward at inference.</p><span class="where">target pixels · CNN-LSTM student</span></li>
+      </ol>
+    </div>
+
+    <div class="sub-block">
+      <div class="split wide-fig">
+        <div class="stack">
+          <h3>When does reward alone suffice?</h3>
+          <div class="props">
+            <div><span class="tag">Feasibility</span><p>By Takens' embedding theorem, a <i>D</i>-dimensional state can be reconstructed from a scalar history of length <i>K</i> ≥ 2<i>D</i> + 1. An LSTM keeps a variable-length history so <i>K</i> need not be tuned.</p></div>
+            <div><span class="tag">Difficulty</span><p>A scalar reward is a projection of the state. The optimality gap is bounded by <span class="mono">Lε / (1 − γ)</span>, where ε is state reconstruction error, and ε is expected to grow as <span class="mono">O(c<sup>D</sup>)</span>.</p></div>
+            <div><span class="tag">Requirement</span><p>The reward must be dense. A reward given only at the goal leaves the agent blind for most of the trajectory.</p></div>
+            <div><span class="tag">Limitation</span><p>Exploration costs steps. In 2D Pointmass the agent needs at least two probing moves before it can localize itself.</p></div>
+          </div>
+        </div>
+        <div class="tbl">
+          <table>
+            <caption>Table I. Pointmass maximum reward (% of optimal) as state dimension grows, fixed history length.</caption>
+            <thead><tr><th scope="col">Dimension</th><th scope="col">State-based</th><th scope="col">Reward-based</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td>99.83</td><td class="r">98.73</td></tr>
+              <tr><td>2</td><td>99.60</td><td class="r">97.11</td></tr>
+              <tr><td>3</td><td>99.48</td><td class="r">95.94</td></tr>
+              <tr><td>4</td><td>99.34</td><td class="r">88.12</td></tr>
+              <tr><td>5</td><td>99.14</td><td class="r">85.96</td></tr>
+              <tr><td>6</td><td>99.05</td><td class="r">57.18</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="try">
+    <div class="sec-head">
+      <span class="eyebrow">Interactive · 2D Pointmass</span>
+      <h2>Be the reward-based policy</h2>
+      <p>The goal is hidden. You get the same input the policy gets: the reward after each move, <span class="mono">r = exp(−3·d)</span> where <i>d</i> is the distance to the goal. Probe, compare, and find it. Then watch a simple probing agent do the same.</p>
+    </div>
+    <div class="demo" id="demo" tabindex="0" aria-label="Pointmass demo. Use arrow keys or W A S D to move.">
+      <div class="readout">
+        <div class="rnow"><span class="val" id="rval" aria-live="polite">0.000</span><span class="lab">r<sub>t</sub> · step <span id="stepn">0</span></span></div>
+        <canvas id="trace" aria-label="Reward history chart"></canvas>
+        <div class="hist" id="hist" aria-label="Action history">a: none yet</div>
+        <div class="status" id="status" aria-live="polite">Click here, then use the arrow keys or the pad.</div>
+      </div>
+      <div class="map-col">
+        <canvas id="map" aria-label="Map of the pointmass field. Hidden until revealed."></canvas>
+        <div class="pad" role="group" aria-label="Move">
+          <button class="u" data-a="0,-1" aria-label="Up">↑</button>
+          <button class="l" data-a="-1,0" aria-label="Left">←</button>
+          <button class="d" data-a="0,1" aria-label="Down">↓</button>
+          <button class="rt" data-a="1,0" aria-label="Right">→</button>
+        </div>
+        <div class="demo-ctrl">
+          <button class="btn" id="reveal" type="button">Reveal map</button>
+          <button class="btn" id="auto" type="button">Run probing agent</button>
+          <button class="btn" id="reset" type="button">New episode</button>
+        </div>
+        <p class="hint">The probing agent climbs one axis at a time using only reward changes, a hand-written stand-in for the learned LSTM policy.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="results">
+    <div class="sec-head">
+      <span class="eyebrow">Results</span>
+      <h2>Train once, transfer across observations</h2>
+    </div>
+
+    <div class="sub-block">
+      <div class="stack">
+        <div class="sec-head" style="margin:0">
+          <h3>Reward-based policies train across diverse environments</h3>
+          <p>Across three seeds, reward-based policies reach <b class="r">95%</b>, <b class="r">66%</b>, and <b class="r">70%</b> of state-based performance in Pointmass, Cartpole, and Car Racing. Car Racing uses a dense reward, <span class="mono">r = r<sub>distance</sub> · r<sub>angle</sub></span>, built from distance to the next waypoint and heading error. The agent sometimes drifts off the centerline to gather more reward signal before correcting.</p>
+        </div>
+        <figure>
+          <div class="plate"><img src="img/fig2.jpg" alt="Four environment screenshots: Pointmass, Cartpole, top-down Car Racing, and a Habitat-Sim kitchen with a Stretch robot."></div>
+          <figcaption><b>Fig. 2</b>Pointmass, Cartpole (DeepMind Control Suite), 2D Car Racing (Gymnasium), and Habitat-Sim for transfer testing.</figcaption>
+        </figure>
+        <figure>
+          <div class="plate"><img src="img/fig4.png" alt="Three learning-curve plots of reward versus timestep. Green observation-based curves sit above orange reward-based curves in Pointmass, Cartpole, and Car Racing."></div>
+          <figcaption><b>Fig. 4</b>Learning curves, <span class="o">observation-based</span> (upper bound) vs. <span class="r">reward-based</span>.</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <div class="sub-block">
+      <div class="split">
+        <div class="stack">
+          <h3>Zero-shot transfer under palette swaps</h3>
+          <p>We recolor every environment, including a pure noise background for Pointmass. The reward-based policy never sees the pixels, so its score barely moves.</p>
+          <div class="tbl">
+            <table>
+              <caption>Table II. Mean reward ± std over 50 trials.</caption>
+              <thead><tr><th scope="col">Observation</th><th scope="col">Pointmass</th><th scope="col">Cartpole</th><th scope="col">Car Racing</th></tr></thead>
+              <tbody>
+                <tr><td>Original</td><td>97.06 ± 1.36</td><td>758.74 ± 62.79</td><td>775.37 ± 225.27</td></tr>
+                <tr class="hl"><td>Shifted</td><td>95.96 ± 2.47</td><td>755.45 ± 52.63</td><td>715.93 ± 264.28</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <figure>
+          <div class="plate"><img src="img/fig5.jpg" alt="Grid of recolored observations: Pointmass on white, noise, green and gold backgrounds; Cartpole in four color schemes; Car Racing with magenta, teal and navy palettes."></div>
+          <figcaption><b>Fig. 5</b>Original observation (left column) and three deliberately difficult palette swaps.</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <div class="sub-block">
+      <div class="stack">
+        <div class="sec-head" style="margin:0">
+          <h3>From a 2D top-down view to a 3D camera</h3>
+          <p>We built a 3D renderer with the same track layout and transition dynamics as Gymnasium Car Racing. The reward-based policy trained in 2D drives the 3D track directly, with behavior indistinguishable from the 2D expert.</p>
+        </div>
+        <div class="videos car">
+          <figure>
+            <video autoplay muted loop playsinline preload="metadata" poster="img/poster_carracing_2d.jpg" aria-label="Top-down 2D Car Racing: a red car follows a grey track across green grass"><source src="video/carracing_2d.mp4" type="video/mp4"></video>
+            <figcaption><b>Source</b>2D Car Racing, top-down view.</figcaption>
+          </figure>
+          <figure>
+            <video autoplay muted loop playsinline preload="metadata" poster="img/poster_carracing_3d.jpg" aria-label="3D Car Racing: chase camera behind a red car driving a winding track"><source src="video/carracing_3d.mp4" type="video/mp4"></video>
+            <figcaption><b>Target</b>3D Car Racing, driven by the DAgger student trained with the reward-based teacher.</figcaption>
+          </figure>
+        </div>
+      </div>
+    </div>
+
+    <div class="sub-block">
+      <div class="stack">
+        <div class="sec-head" style="margin:0">
+          <h3>A Stretch robot in scanned real homes</h3>
+          <p>The same Car Racing checkpoint, with no retraining, drives a Stretch mobile robot along navmesh corridor tracks in two HM3D building scans in Habitat-Sim. Reward is computed from the robot's pose relative to recorded waypoints, which a real robot could get from localization. It succeeds in both scenes despite a different renderer and a different embodiment.</p>
+        </div>
+        <div class="videos">
+          <figure>
+            <video autoplay muted loop playsinline preload="metadata" poster="img/poster_clip1.jpg" aria-label="Stretch robot rollout in HM3D scene 00801"><source src="video/clip1.mp4" type="video/mp4"></video>
+            <figcaption><b>00801</b>Bedroom to kitchen corridor.</figcaption>
+          </figure>
+          <figure>
+            <video autoplay muted loop playsinline preload="metadata" poster="img/poster_habitat_00807.jpg" aria-label="Stretch robot rollout in HM3D scene 00807"><source src="video/clip2.mp4" type="video/mp4"></video>
+            <figcaption><b>00807</b>Open living and dining area.</figcaption>
+          </figure>
+        </div>
+        <figure>
+          <div class="plate"><img src="img/fig6.jpg" alt="Two rows of seven frames showing a Stretch robot moving through a bedroom, hallway and kitchen, and through an open living and dining room."></div>
+          <figcaption><b>Fig. 6</b>Motion strips of the zero-shot deployment. Top: scene 00801. Bottom: scene 00807.</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <div class="sub-block">
+      <div class="split">
+        <div class="stack">
+          <h3>A teacher for pixel-based policies</h3>
+          <p>Learning 3D Car Racing from pixels with a CNN-LSTM is slow, even on a log timestep axis. With the reward-based policy as a DAgger teacher, the pixel student reaches near-optimal driving in about 70,000 steps.</p>
+          <p>The upfront source training pays for itself twice. One reward-based policy serves every target that shares the reward and action spaces. And source simulators are usually light and parallel, while photorealistic targets cost far more per step.</p>
+        </div>
+        <figure>
+          <div class="plate"><img src="img/fig7.png" alt="Log-scale learning curve. DAgger in red reaches about 800 reward by 70K steps; pixel-based from scratch in green stays below 700 through 10M steps."></div>
+          <figcaption><b>Fig. 7</b>3D Car Racing, log timestep scale: DAgger with the reward-based teacher vs. pixel-based learning from scratch.</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <div class="sub-block">
+      <div class="split">
+        <div class="stack">
+          <h3>Reward estimation succeeds where state estimation fails</h3>
+          <p>When the target gives images but no reward, you can learn to estimate one. With 100,000 image samples in Cartpole, a learned five-dimensional state estimator drives the state-based policy down to random-policy level. A learned scalar reward estimator keeps the reward-based policy close to its source score.</p>
+        </div>
+        <div class="tbl">
+          <table>
+            <caption>Table III. Cartpole, mean ± std over 100 trials.</caption>
+            <thead><tr><th scope="col">Policy</th><th scope="col">Original domain</th><th scope="col">Image domain</th></tr></thead>
+            <tbody>
+              <tr><td>State-based</td><td>915.49 ± 2.24</td><td class="weak">189.41 ± 12.54</td></tr>
+              <tr class="hl"><td>Reward-based</td><td>836.49 ± 4.46</td><td>735.83 ± 65.48</td></tr>
+              <tr><td>Random</td><td class="weak">–</td><td class="weak">192.78 ± 36.91</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="sub-block">
+      <div class="stack">
+        <div class="sec-head" style="margin:0">
+          <h3>Expert guidance matters most where failure ends the episode</h3>
+          <p>Guidance helps a little in Pointmass and Cartpole, where poor exploration still earns reward. In Car Racing, leaving the track ends the episode and cuts off the reward signal. Guidance keeps episodes alive long enough to learn.</p>
+        </div>
+        <figure>
+          <div class="plate"><img src="img/fig9.png" alt="Three learning-curve plots comparing guidance in orange against no guidance in red. The gap is small in Pointmass and Cartpole and large in Car Racing."></div>
+          <figcaption><b>Fig. 9</b>Ablation: guidance vs. no guidance. The benefit grows with task difficulty.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- <section id="limits">
+    <div class="sec-head">
+      <span class="eyebrow">Scope</span>
+      <h2>Limitations and next steps</h2>
+    </div>
+    <div class="limits">
+      <div><h3>Fixed dynamics</h3><p>Source and target share transition functions to isolate the observation shift. Pairing reward-based policies with domain randomization or system identification could handle both shifts at once.</p></div>
+      <div><h3>Simulation only</h3><p>All results, including Habitat-Sim home scans, are in simulation. Next are physical sensor swaps, such as LiDAR to RGB-D on a mobile base or wider-FoV cameras on a manipulator.</p></div>
+      <div><h3>Real-world rewards</h3><p>Real rewards can often be estimated from sensors without instrumentation, such as lane deviation from a camera image, which matches the reward-estimator setting of Table III.</p></div>
+    </div>
+  </section> -->
+
+  <!-- <footer>
+    <span>Reward as Observation · Manuscript 1852 submitted to IEEE ICRA 2027</span>
+    <span>Confidential, limited circulation, for review</span>
+  </footer> -->
+</div>
+
+<script>
+(function () {
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+  function fit(cv) {
+    const dpr = window.devicePixelRatio || 1;
+    const r = cv.getBoundingClientRect();
+    const w = Math.max(1, Math.round(r.width * dpr)), h = Math.max(1, Math.round(r.height * dpr));
+    if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+    const ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx, w: r.width, h: r.height };
+  }
+
+  /* ---------- ticker: a synthetic reward/action stream ---------- */
+  const tk = document.getElementById('ticker');
+  let tkT = 0;
+  function tickerVal(t) {
+    // a driving-like reward: high on the centerline, dips on corners, recovers after steering
+    return 0.72 + 0.18 * Math.sin(t * 0.09) * Math.cos(t * 0.031) - 0.22 * Math.max(0, Math.sin(t * 0.047 + 1.3)) ** 6;
+  }
+  function drawTicker() {
+    const { ctx, w, h } = fit(tk);
+    ctx.clearRect(0, 0, w, h);
+    const n = Math.floor(w / 3);
+    ctx.lineWidth = 1.6; ctx.strokeStyle = css('--reward'); ctx.beginPath();
+    for (let i = 0; i < n; i++) {
+      const v = tickerVal(tkT + i);
+      const x = i * 3, y = h - 6 - v * (h - 14);
+      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    }
+    ctx.stroke();
+    ctx.fillStyle = css('--obs');
+    for (let i = 0; i < n; i += 6) {
+      const a = Math.sin((tkT + i) * 0.09 + 0.8);
+      const bh = Math.abs(a) * 6 + 1;
+      ctx.fillRect(i * 3, a > 0 ? h - bh : h - 1 - 0, 2, a > 0 ? bh : 1);
+    }
+  }
+  function loop() { tkT += 0.35; drawTicker(); requestAnimationFrame(loop); }
+  if (reduce) drawTicker(); else requestAnimationFrame(loop);
+
+  /* ---------- Pointmass demo ---------- */
+  const STEP = 0.08, WIN = 0.06, K = 3;
+  const map = document.getElementById('map'), trace = document.getElementById('trace');
+  const rval = document.getElementById('rval'), stepn = document.getElementById('stepn');
+  const hist = document.getElementById('hist'), status = document.getElementById('status');
+  const revealBtn = document.getElementById('reveal'), autoBtn = document.getElementById('auto');
+  let s, revealed, autoTimer = null;
+
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const reward = p => Math.exp(-K * Math.hypot(p[0] - s.goal[0], p[1] - s.goal[1]));
+  const arrow = (dx, dy) => dx > 0 ? '→' : dx < 0 ? '←' : dy > 0 ? '↓' : '↑';
+
+  function reset() {
+    stopAuto();
+    let start, goal;
+    do { start = [rnd(-0.85, 0.85), rnd(-0.85, 0.85)]; goal = [rnd(-0.75, 0.75), rnd(-0.75, 0.75)]; }
+    while (Math.hypot(start[0] - goal[0], start[1] - goal[1]) < 0.9);
+    s = { pos: start, goal, trail: [start.slice()], rs: [], acts: [], done: false };
+    s.rs.push(reward(s.pos));
+    revealed = false; revealBtn.textContent = 'Reveal map';
+    status.className = 'status';
+    status.textContent = 'Click here, then use the arrow keys or the pad.';
+    render();
+  }
+
+  function move(dx, dy) {
+    if (s.done) return;
+    s.pos = [Math.min(1, Math.max(-1, s.pos[0] + dx * STEP)), Math.min(1, Math.max(-1, s.pos[1] + dy * STEP))];
+    s.trail.push(s.pos.slice());
+    s.acts.push(arrow(dx, dy));
+    const r = reward(s.pos); s.rs.push(r);
+    const d = Math.hypot(s.pos[0] - s.goal[0], s.pos[1] - s.goal[1]);
+    if (d < WIN) {
+      s.done = true; stopAuto();
+      status.className = 'status win';
+      status.textContent = 'Goal reached in ' + s.acts.length + ' steps, using reward alone.';
+    } else if (s.acts.length >= 150) {
+      s.done = true; stopAuto();
+      status.className = 'status';
+      status.textContent = 'Out of steps. Reveal the map or start a new episode.';
+    } else {
+      const prev = s.rs[s.rs.length - 2];
+      status.className = 'status';
+      status.textContent = r > prev + 1e-9 ? 'Reward went up. Warmer.' : 'Reward went down. Colder.';
+    }
+    render();
+  }
+
+  function render() {
+    const r = s.rs[s.rs.length - 1];
+    rval.textContent = r.toFixed(3);
+    stepn.textContent = s.acts.length;
+    hist.textContent = s.acts.length ? 'a: ' + s.acts.slice(-24).join(' ') : 'a: none yet';
+    drawTrace(); drawMap();
+  }
+
+  function drawTrace() {
+    const { ctx, w, h } = fit(trace);
+    ctx.clearRect(0, 0, w, h);
+    const pad = 10, top = 10, bot = h - 18;
+    ctx.strokeStyle = css('--line'); ctx.lineWidth = 1;
+    ctx.fillStyle = css('--muted'); ctx.font = '10px ' + css('--mono');
+    [0, 0.5, 1].forEach(v => {
+      const y = bot - v * (bot - top);
+      ctx.beginPath(); ctx.moveTo(30, y); ctx.lineTo(w - pad, y); ctx.stroke();
+      ctx.fillText(v.toFixed(1), 6, y + 3);
+    });
+    ctx.fillText('step', w - pad - 24, h - 4);
+    const data = s.rs.slice(-60), n = Math.max(data.length - 1, 1);
+    const X = i => 30 + (i / Math.max(n, 20)) * (w - pad - 30);
+    const Y = v => bot - v * (bot - top);
+    ctx.beginPath();
+    data.forEach((v, i) => i ? ctx.lineTo(X(i), Y(v)) : ctx.moveTo(X(i), Y(v)));
+    ctx.lineTo(X(data.length - 1), bot); ctx.lineTo(X(0), bot); ctx.closePath();
+    ctx.globalAlpha = 0.14; ctx.fillStyle = css('--reward'); ctx.fill(); ctx.globalAlpha = 1;
+    ctx.beginPath();
+    data.forEach((v, i) => i ? ctx.lineTo(X(i), Y(v)) : ctx.moveTo(X(i), Y(v)));
+    ctx.strokeStyle = css('--reward'); ctx.lineWidth = 2; ctx.stroke();
+    const li = data.length - 1;
+    ctx.beginPath(); ctx.arc(X(li), Y(data[li]), 3.5, 0, Math.PI * 2); ctx.fillStyle = css('--reward'); ctx.fill();
+  }
+
+  function drawMap() {
+    const { ctx, w } = fit(map);
+    const S = w, P = p => [(p[0] + 1) / 2 * S, (p[1] + 1) / 2 * S];
+    ctx.clearRect(0, 0, S, S);
+    ctx.strokeStyle = css('--line'); ctx.lineWidth = 1;
+    for (let i = 1; i < 8; i++) {
+      const g = i * S / 8;
+      ctx.beginPath(); ctx.moveTo(g, 0); ctx.lineTo(g, S); ctx.moveTo(0, g); ctx.lineTo(S, g); ctx.stroke();
+    }
+    const show = revealed || s.done;
+    if (!show) {
+      ctx.fillStyle = css('--muted'); ctx.font = '12px ' + css('--mono'); ctx.textAlign = 'center';
+      ctx.fillText('observation hidden', S / 2, S / 2 - 6);
+      ctx.fillText('the policy never sees this', S / 2, S / 2 + 12);
+      ctx.textAlign = 'start';
+      return;
+    }
+    const g = P(s.goal);
+    [0.25, 0.5, 0.75].forEach(k => {
+      const rad = (-Math.log(k) / K) / 2 * S;
+      ctx.beginPath(); ctx.arc(g[0], g[1], rad, 0, Math.PI * 2);
+      ctx.strokeStyle = css('--reward'); ctx.globalAlpha = 0.25; ctx.stroke(); ctx.globalAlpha = 1;
+    });
+    ctx.beginPath();
+    s.trail.forEach((p, i) => { const q = P(p); i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]); });
+    ctx.strokeStyle = css('--fg'); ctx.globalAlpha = 0.55; ctx.lineWidth = 1.5; ctx.stroke(); ctx.globalAlpha = 1;
+    ctx.fillStyle = css('--reward'); ctx.fillRect(g[0] - 6, g[1] - 6, 12, 12);
+    const a = P(s.pos);
+    ctx.fillStyle = css('--fg'); ctx.fillRect(a[0] - 5, a[1] - 5, 10, 10);
+  }
+
+  // probing agent: coordinate-wise hill climbing on reward differences only
+  function makeAgent() {
+    let axis = 0, dir = 1, improved = false, flips = 0, axesDone = 0;
+    const pending = [];
+    return function step() {
+      if (pending.length) { const m = pending.shift(); move(m[0], m[1]); return; }
+      if (axesDone >= 2) { stopAuto(); if (!s.done) status.textContent = 'Agent settled at the reward peak it found.'; return; }
+      const before = s.rs[s.rs.length - 1];
+      const mv = axis === 0 ? [dir, 0] : [0, dir];
+      move(mv[0], mv[1]);
+      const after = s.rs[s.rs.length - 1];
+      if (after < before) {
+        if (!improved && flips < 1) { flips++; dir = -dir; pending.push(axis === 0 ? [dir, 0] : [0, dir]); }
+        else { pending.push(axis === 0 ? [-dir, 0] : [0, -dir]); axis = 1 - axis; dir = 1; improved = false; flips = 0; axesDone++; }
+      } else improved = true;
+    };
+  }
+  function stopAuto() { if (autoTimer) { clearInterval(autoTimer); autoTimer = null; } autoBtn.textContent = 'Run probing agent'; }
+  autoBtn.addEventListener('click', () => {
+    if (autoTimer) { stopAuto(); return; }
+    if (s.done) reset();
+    const agent = makeAgent();
+    autoBtn.textContent = 'Stop agent';
+    autoTimer = setInterval(() => { if (s.done) { stopAuto(); return; } agent(); }, reduce ? 60 : 180);
+  });
+
+  revealBtn.addEventListener('click', () => { revealed = !revealed; revealBtn.textContent = revealed ? 'Hide map' : 'Reveal map'; drawMap(); });
+  document.getElementById('reset').addEventListener('click', reset);
+  document.querySelectorAll('.pad button').forEach(b => b.addEventListener('click', () => {
+    stopAuto(); const [dx, dy] = b.dataset.a.split(',').map(Number); move(dx, dy);
+  }));
+  const keys = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0], w: [0, -1], s: [0, 1], a: [-1, 0], d: [1, 0] };
+  document.getElementById('demo').addEventListener('keydown', e => {
+    const k = keys[e.key] || keys[e.key.toLowerCase && e.key.toLowerCase()];
+    if (!k || e.target.tagName === 'BUTTON' && e.key === ' ') return;
+    e.preventDefault(); stopAuto(); move(k[0], k[1]);
+  });
+
+  reset();
+  let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { render(); drawTicker(); }, 80); });
+  if (window.matchMedia) {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    mq.addEventListener && mq.addEventListener('change', () => { render(); drawTicker(); });
+  }
+  new MutationObserver(() => { render(); drawTicker(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+})();
+</script>
+</body>
+</html>
