@@ -78,11 +78,20 @@ p { margin: 0; max-width: var(--measure); }
 .hero .lede { margin-top: 22px; font-size: 1.15rem; }
 .venue { display: inline-flex; gap: 10px; align-items: center; margin-bottom: 18px; }
 .venue .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--reward); }
-.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
-.btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 999px; font-family: var(--mono); font-size: 0.86rem; text-decoration: none; border: 1px solid var(--line); color: var(--fg); background: var(--surface); cursor: pointer; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 13px; white-space: nowrap; border-radius: 999px; font-family: var(--mono); font-size: 0.86rem; text-decoration: none; border: 1px solid var(--line); color: var(--fg); background: var(--surface); cursor: pointer; }
 .btn:hover { border-color: var(--fg); }
 .btn.primary { background: var(--fg); color: var(--bg); border-color: var(--fg); }
 .btn svg { width: 16px; height: 16px; flex: none; }
+
+/* authors */
+.authors { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-block: 1px solid var(--line); }
+.authors li { padding: 16px 18px; display: grid; gap: 4px; align-content: start; }
+.authors li:first-child { padding-left: 0; }
+.authors li + li { border-left: 1px solid var(--line); }
+.authors .name { font-family: var(--display); font-weight: 600; font-size: 1.08rem; color: var(--fg); text-decoration: none; }
+.authors .name:hover { color: var(--reward); }
+.authors .affil { font-size: 0.86rem; color: var(--muted); line-height: 1.35; }
 
 .plate { background: var(--plate); border: 1px solid var(--plate-line); border-radius: 10px; padding: 14px; margin: 0; }
 .plate img { display: block; width: 100%; height: auto; }
@@ -182,6 +191,9 @@ footer { margin-top: 72px; padding-top: 22px; border-top: 1px solid var(--line);
   .hero, .split, .split.wide-fig, .demo { grid-template-columns: minmax(0, 1fr); }
   .hero { padding-block: 36px 28px; gap: 28px; }
   .glance { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .authors { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .authors li:nth-child(3) { border-left: 0; padding-left: 0; }
+  .authors li:nth-child(n+3) { border-top: 1px solid var(--line); }
   .glance div:nth-child(3) { border-left: 0; padding-left: 0; }
   .glance div:nth-child(n+3) { border-top: 1px solid var(--line); }
   .steps, .limits { grid-template-columns: minmax(0, 1fr); }
@@ -220,6 +232,8 @@ footer { margin-top: 72px; padding-top: 22px; border-top: 1px solid var(--line);
       <div class="actions">
         <a class="btn primary" href="paper.pdf" target="_blank" rel="noopener">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 1.5h5.5L13 5v9.5H4z"/><path d="M9.5 1.5V5H13"/></svg>Paper (PDF)</a>
+        <a class="btn" href="https://arxiv.org/abs/2610.00729" target="_blank" rel="noopener">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12.5 9v5.5h-11v-11H7"/><path d="M9.5 1.5h5v5"/><path d="M14.5 1.5 7.5 8.5"/></svg>arXiv</a>
         <a class="btn" href="#video">
           <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M5 3.2v9.6L12.5 8z"/></svg>Video</a>
         <a class="btn" href="#try">
@@ -231,6 +245,25 @@ footer { margin-top: 72px; padding-top: 22px; border-top: 1px solid var(--line);
       <figcaption><b>Fig. 1</b>The same policy drives in 2D and 3D. Its only inputs are reward <i>r<sub>t</sub></i> and action <i>a<sub>t</sub></i> histories.</figcaption>
     </figure>
   </div>
+
+  <ul class="authors" aria-label="Authors">
+    <li>
+      <a class="name" href="https://morganbyrd03.github.io" target="_blank" rel="noopener">Morgan Byrd</a>
+      <span class="affil">Georgia Institute of Technology</span>
+    </li>
+    <li>
+      <a class="name" href="https://itsmaks.com/" target="_blank" rel="noopener">Maks Sorokin</a>
+      <span class="affil">Georgia Institute of Technology</span>
+    </li>
+    <li>
+      <a class="name" href="https://www.linkedin.com/in/robert-wright-690764b0" target="_blank" rel="noopener">Robert Wright</a>
+      <span class="affil">Georgia Tech Research Institute</span>
+    </li>
+    <li>
+      <a class="name" href="https://faculty.cc.gatech.edu/~sha9/" target="_blank" rel="noopener">Sehoon Ha</a>
+      <span class="affil">Georgia Institute of Technology</span>
+    </li>
+  </ul>
 
   <!-- <div class="sees" aria-label="Illustration of the reward signal the policy observes">
     <span class="eyebrow">What the policy sees: <span class="r">r<sub>t</sub></span> and <span class="o">a<sub>t</sub></span>, nothing else</span>
